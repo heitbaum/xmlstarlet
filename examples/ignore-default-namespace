@@ -1,0 +1,16 @@
+#!/bin/sh
+echo normal match
+./xmlstarlet --ignore-default-namespace sel -t \
+             -m /books/book/title -c . --nl xml/books-multiple-namespace.xml
+./xmlstarlet --ignore-default-namespace ed -d /books/book/title \
+             xml/books-multiple-namespace.xml
+
+echo match nothing
+./xmlstarlet sel -t --if /books/book/title -o imposible --else -o nothing-match --break --nl xml/books-multiple-namespace.xml
+./xmlstarlet ed -d /books/book/title xml/books-multiple-namespace.xml
+
+echo match no-default namespace
+./xmlstarlet --ignore-default-namespace sel -t \
+             -c /books/ext:book xml/books-multiple-namespace.xml
+./xmlstarlet --ignore-default-namespace ed -d /books/ext:book \
+             xml/books-multiple-namespace.xml
