@@ -95,7 +95,7 @@ foInitOptions(foOptionsPtr ops)
     ops->omit_decl = 0;
     ops->recovery = 0;
     ops->dropdtd = 0;
-    ops->options = XML_PARSE_NONET;
+    ops->options = XML_PARSE_NONET | XML_PARSE_NOBLANKS;
 #ifdef LIBXML_HTML_ENABLED
     ops->html = 0;
 #endif
@@ -108,19 +108,6 @@ foInitOptions(foOptionsPtr ops)
 void
 foInitLibXml(foOptionsPtr ops)
 {
-    /*
-     * Store line numbers in the document tree
-     */
-    xmlLineNumbersDefault(1);
-
-    xmlSubstituteEntitiesDefault(1);
-    xmlKeepBlanksDefault(0);
-    xmlPedanticParserDefault(0);
-    
-    xmlGetWarningsDefaultValue = 1;
-    xmlDoValidityCheckingDefaultValue = 0;
-    xmlLoadExtDtdDefaultValue = 0;
-
     xmlTreeIndentString = NULL;
     if (ops->indent)
     {

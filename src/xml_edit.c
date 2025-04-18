@@ -554,6 +554,9 @@ edOutput(const char* filename, const XmlEdAction* ops, int ops_count,
         (g_ops->nonet? XML_PARSE_NONET : 0);
     xmlSaveCtxtPtr save;
 
+    if (g_ops->noblanks && !g_ops->preserveFormat)
+        read_options |= XML_PARSE_NOBLANKS;
+
     doc = xmlstarReadFile(filename, NULL, read_options);
     if (!doc)
     {
@@ -734,10 +737,6 @@ edMain(int argc, char **argv)
             break;
         }
     }
-
-    xmlKeepBlanksDefault(0);
-
-    if ((!g_ops.noblanks) || g_ops.preserveFormat) xmlKeepBlanksDefault(1);
 
     if (i >= argc)
     {
