@@ -218,8 +218,8 @@ jobs:
     continue-on-error: ${{ matrix.experimental }}
     env:
       PREFIX: ${{ github.workspace }}/deps
-      LIBXML2: "2.12.10"   # pinned baseline so the compiler is the only variable
-      LIBXSLT: "1.1.42"
+      LIBXML2: "2.15.3"    # pinned baseline (newest stable) so the compiler is the only variable
+      LIBXSLT: "1.1.43"
     strategy:
       fail-fast: false
       matrix:
@@ -383,8 +383,8 @@ jobs:
     continue-on-error: ${{ matrix.experimental }}
     env:
       PREFIX: ${{ github.workspace }}/deps
-      LIBXML2: "2.12.10"   # pinned baseline so the target arch is the only variable
-      LIBXSLT: "1.1.42"
+      LIBXML2: "2.15.3"    # pinned baseline (newest stable) so the target arch is the only variable
+      LIBXSLT: "1.1.43"
       QEMU_LD_PREFIX: /usr/${{ matrix.triplet }}
     strategy:
       fail-fast: false
