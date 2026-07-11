@@ -173,7 +173,11 @@ void reportGenericError(void* ctx, const char * msg, ...) {
 /* by default all errors are reported */
 static ErrorInfo errorInfo = { NULL, NULL, VERBOSE, CONTINUE };
 
+#if LIBXML_VERSION >= 21200
+void reportError(void *ptr, const xmlError *error)
+#else
 void reportError(void *ptr, xmlErrorPtr error)
+#endif
 {
     ErrorInfo *errorInfo = (ErrorInfo*) ptr;
     assert(errorInfo);

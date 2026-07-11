@@ -33,7 +33,11 @@ typedef struct _errorInfo {
     ErrorStop stop;
 } ErrorInfo;
 
+#if LIBXML_VERSION >= 21200
+void reportError(void *ptr, const xmlError *error);
+#else
 void reportError(void *ptr, xmlErrorPtr error);
+#endif
 void suppressErrors(void);
 
 /* Input helpers that treat the filename "-" as standard input.  libxml2 2.13

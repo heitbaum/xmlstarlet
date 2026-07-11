@@ -178,7 +178,11 @@ elInitOptions(elOptions *ops)
 }
 
 typedef struct {
+#if LIBXML_VERSION >= 20908
+    const xmlChar **array;
+#else
     xmlChar **array;
+#endif
     int offset;
 } ArrayDest;
 
@@ -186,7 +190,11 @@ typedef struct {
  * put @name into @data->array[@data->offset]
  */
 static void
+#if LIBXML_VERSION >= 20908
+hash_key_put(void *payload, void *data, const xmlChar *name)
+#else
 hash_key_put(void *payload, void *data, xmlChar *name)
+#endif
 {
     ArrayDest *dest = data;
     dest->array[dest->offset++] = name;
