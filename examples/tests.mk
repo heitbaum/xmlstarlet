@@ -88,6 +88,7 @@ examples/tab1\
 examples/table1\
 examples/table2\
 examples/table3\
+examples/val-lineno\
 examples/unicode1\
 examples/update-attr1\
 examples/update-elem1\
