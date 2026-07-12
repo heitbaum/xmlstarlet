@@ -16,6 +16,7 @@ examples/bigxml-xsd
 
 QUICK_TESTS =\
 examples/c14n-default-attr\
+examples/c14n-extdtd\
 examples/c14n-newlines\
 examples/c14n1\
 examples/c14n2\
