@@ -70,6 +70,9 @@ isStdinName(const char *filename)
 xmlDocPtr
 xmlstarReadFile(const char *filename, const char *encoding, int options)
 {
+#if LIBXML_VERSION >= 21400
+    options |= XML_PARSE_UNZIP;
+#endif
     if (isStdinName(filename))
         return xmlReadFd(STDIN_FILENO, "-", encoding, options);
     return xmlReadFile(filename, encoding, options);
@@ -81,6 +84,9 @@ xmlstarReadFile(const char *filename, const char *encoding, int options)
 xmlTextReaderPtr
 xmlstarReaderForFile(const char *filename, const char *encoding, int options)
 {
+#if LIBXML_VERSION >= 21400
+    options |= XML_PARSE_UNZIP;
+#endif
     if (isStdinName(filename))
         return xmlReaderForFd(STDIN_FILENO, "-", encoding, options);
     return xmlReaderForFile(filename, encoding, options);
@@ -124,6 +130,9 @@ xmlstarCreateFileParserCtxt(const char *filename)
 xmlDocPtr
 xmlstarHtmlReadFile(const char *filename, const char *encoding, int options)
 {
+#if LIBXML_VERSION >= 21400
+    options |= XML_PARSE_UNZIP;
+#endif
     if (isStdinName(filename))
         /* libxml2 2.13 dropped its "-" => stdin handling (see xmlstarReadFile),
          * and only then does htmlReadFd() read stdin correctly; on older
