@@ -298,7 +298,6 @@ valMain(int argc, char **argv)
 
     errorInfo.verbose = ops.err;
     xmlSetStructuredErrorFunc(&errorInfo, reportError);
-    xmlLineNumbersDefault(1);
 
     if (ops.dtd)
     {
@@ -490,11 +489,8 @@ valMain(int argc, char **argv)
         xmlSchemaFreeValidCtxt(schemaCtxt);
         xmlRelaxNGFree(relaxng);
         xmlSchemaFree(schema);
-        xmlRelaxNGCleanupTypes();
-        xmlSchemaCleanupTypes();
 #endif  /* LIBXML_SCHEMAS_ENABLED */
     }
 
-    xmlCleanupParser();
     return invalidFound;
 }

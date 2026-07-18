@@ -711,6 +711,7 @@ selMain(int argc, char **argv)
     xml_options |= XML_PARSE_NOENT; /* substitute entities */
     xml_options |= XML_PARSE_DTDATTR; /* use default attrib values */
     xml_options |= ops.nonet? XML_PARSE_NONET : 0;
+    xml_options |= ops.noblanks? XML_PARSE_NOBLANKS : 0;
     xsltOps.nonet = ops.nonet;
     xsltOps.noblanks = ops.noblanks;
     xsltInitLibXml(&xsltOps);
@@ -740,12 +741,6 @@ selMain(int argc, char **argv)
     if (i == argc)
         do_file("-", style_tree, xml_options, &ops, &xsltOps, &status);
 
-    /* 
-     * Shutdown libxml
-     */
-    xsltCleanupGlobals();
-    xmlCleanupParser();
-    
     return status;
 }
 
@@ -882,7 +877,7 @@ caseSortFunction(xsltTransformContextPtr ctxt, xmlNodePtr *sorts,
 	}
 
         tempcaseorder[j] = 0;
-	if ((comp->case_order == NULL) /* && (comp->has_case_order != 0) */) {
+	if (comp->case_order == NULL) {
 	    comp->case_order = xsltEvalAttrValueTemplate(ctxt, sorts[j],
                 (const xmlChar *) "case-order", XSLT_NAMESPACE);
 	    if (comp->case_order != NULL) {

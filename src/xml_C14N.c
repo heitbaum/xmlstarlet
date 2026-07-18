@@ -118,12 +118,6 @@ int c14nMain(int argc, char **argv) {
     int ret = -1, nonet = 1;
     
     /*
-     * Init libxml
-     */     
-    xmlInitParser();
-    LIBXML_TEST_VERSION
-    
-    /*
      * Parse command line and process file
      */
 
@@ -164,12 +158,6 @@ int c14nMain(int argc, char **argv) {
         c14nUsage(argv[0], EXIT_BAD_ARGS);
     }
 
-    /* 
-     * Shutdown libxml
-     */
-    xmlCleanupParser();
-    xmlMemoryDump();
-    
     return ret;
 }
 
@@ -237,9 +225,6 @@ load_xpath_expr (xmlDocPtr parent_doc, const char* filename) {
     /*
      * load XPath expr as a file
      */
-    xmlLoadExtDtdDefaultValue = XML_DETECT_IDS | XML_COMPLETE_ATTRS;
-    xmlSubstituteEntitiesDefault(1);
-
     doc = xmlstarReadFile(filename, NULL, XML_PARSE_DTDLOAD | XML_PARSE_DTDATTR);
     if (doc == NULL) {
         fprintf(stderr, "Error: unable to parse file \"%s\"\n", filename);
