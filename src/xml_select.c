@@ -799,7 +799,8 @@ compareFunction(xmlXPathObjectPtr obj1, xmlXPathObjectPtr obj2,
  */
 void
 caseSortFunction(xsltTransformContextPtr ctxt, xmlNodePtr *sorts,
-                   int nbsorts) {
+    int nbsorts)
+{
 #ifdef XSLT_REFACTORED
     xsltStyleItemSortPtr comp;
 #else
@@ -835,10 +836,8 @@ caseSortFunction(xsltTransformContextPtr ctxt, xmlNodePtr *sorts,
         comp = sorts[j]->psvi;
         tempstype[j] = 0;
         if ((comp->stype == NULL) && (comp->has_stype != 0)) {
-            comp->stype =
-                xsltEvalAttrValueTemplate(ctxt, sorts[j],
-                                          (const xmlChar *) "data-type",
-                                          XSLT_NAMESPACE);
+            comp->stype = xsltEvalAttrValueTemplate(ctxt, sorts[j],
+                (const xmlChar *) "data-type", XSLT_NAMESPACE);
             if (comp->stype != NULL) {
                 tempstype[j] = 1;
                 if (xmlStrEqual(comp->stype, (const xmlChar *) "text"))
@@ -847,8 +846,8 @@ caseSortFunction(xsltTransformContextPtr ctxt, xmlNodePtr *sorts,
                     comp->number = 1;
                 else {
                     xsltTransformError(ctxt, NULL, sorts[j],
-                          "xsltDoSortFunction: no support for data-type = %s\n",
-                                     comp->stype);
+                        "xsltDoSortFunction: no support for data-type = %s\n",
+                        comp->stype);
                     comp->number = 0; /* use default */
                 }
             }
@@ -856,19 +855,17 @@ caseSortFunction(xsltTransformContextPtr ctxt, xmlNodePtr *sorts,
         temporder[j] = 0;
         if ((comp->order == NULL) && (comp->has_order != 0)) {
             comp->order = xsltEvalAttrValueTemplate(ctxt, sorts[j],
-                                                    (const xmlChar *) "order",
-                                                    XSLT_NAMESPACE);
+                (const xmlChar *) "order", XSLT_NAMESPACE);
             if (comp->order != NULL) {
                 temporder[j] = 1;
                 if (xmlStrEqual(comp->order, (const xmlChar *) "ascending"))
                     comp->descending = 0;
-                else if (xmlStrEqual(comp->order,
-                                     (const xmlChar *) "descending"))
+                else if (xmlStrEqual(comp->order, (const xmlChar *) "descending"))
                     comp->descending = 1;
                 else {
                     xsltTransformError(ctxt, NULL, sorts[j],
-                             "xsltDoSortFunction: invalid value %s for order\n",
-                                     comp->order);
+                        "xsltDoSortFunction: invalid value %s for order\n",
+                        comp->order);
                     comp->descending = 0; /* use default */
                 }
             }
@@ -942,7 +939,7 @@ caseSortFunction(xsltTransformContextPtr ctxt, xmlNodePtr *sorts,
                          */
                         if (resultsTab[depth] == NULL)
                             resultsTab[depth] = xsltComputeSortResult(ctxt,
-                                                        sorts[depth]);
+                                sorts[depth]);
                         res = resultsTab[depth];
                         if (res == NULL)
                             break;
