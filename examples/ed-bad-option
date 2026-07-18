@@ -1,0 +1,4 @@
+#!/bin/sh
+# An unrecognized ed option must fail cleanly (EXIT_BAD_ARGS = 2), not
+# segfault. Regression test for bug 112 (SF merge-request 3, C. Staïesse).
+./xmlstarlet ed --bogus xml/foo.xml >/dev/null 2>&1; echo $?
