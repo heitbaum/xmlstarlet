@@ -726,7 +726,7 @@ edMain(int argc, char **argv)
             }
             else
             {
-                fprintf(stderr, "Warning: unrecognized option '%s'\n", arg);
+                edUsage(argv[0], EXIT_BAD_ARGS);
             }
             ops_count++;
         }

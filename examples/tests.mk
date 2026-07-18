@@ -38,6 +38,7 @@ examples/ed-append\
 examples/ed-backref-delete\
 examples/ed-backref1\
 examples/ed-backref2\
+examples/ed-bad-option\
 examples/ed-expr\
 examples/ed-insert\
 examples/ed-literal\
