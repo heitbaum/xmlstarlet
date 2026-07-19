@@ -322,6 +322,28 @@ removeNodeFromPrev(xmlNodePtr node)
 }
 
 /**
+ * Set the node-deregistration callback.
+ *
+ * libxml2 2.13 deprecated the global node-registration hooks and offers no
+ * replacement, but we still need the deregister callback to drop freed nodes
+ * from @previous_insertion (the $prev variable).  Isolate the deprecated call
+ * here so building with -Werror=deprecated-declarations does not reject it.
+ * TODO: revisit once libxml2 provides a non-global successor.
+ */
+static void
+edSetDeregisterNode(xmlDeregisterNodeFunc func)
+{
+#ifdef __GNUC__
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+    xmlDeregisterNodeDefault(func);
+#ifdef __GNUC__
+# pragma GCC diagnostic pop
+#endif
+}
+
+/**
  *  'insert' operation
  */
 static void
@@ -454,7 +476,7 @@ edProcess(xmlDocPtr doc, const XmlEdAction* ops, int ops_count)
     previous_insertion = xmlXPathNodeSetCreate(NULL);
     registerXstarVariable(ctxt, "prev",
         xmlXPathWrapNodeSet(previous_insertion));
-    xmlDeregisterNodeDefault(&removeNodeFromPrev);
+    edSetDeregisterNode(&removeNodeFromPrev);
 
 #if HAVE_EXSLT_XPATH_REGISTER
     /* register extension functions */
@@ -529,7 +551,7 @@ edProcess(xmlDocPtr doc, const XmlEdAction* ops, int ops_count)
     }
     /* NOTE: free()ing ctxt also free()s previous_insertion */
     previous_insertion = NULL;
-    xmlDeregisterNodeDefault(NULL);
+    edSetDeregisterNode(NULL);
 
     xmlXPathFreeContext(ctxt);
 }
