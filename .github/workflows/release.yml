@@ -83,6 +83,21 @@ jobs:
             gcc-mingw-w64-x86-64 curl xz-utils zip \
             xsltproc docbook-xsl docbook-xsl-ns docbook-xml fop ghostscript
 
+      # Cache the cross-built dependency stack (downloaded tarballs + the
+      # static zlib/iconv/libxml2/libxslt). Keyed on versions.mk.
+      - name: Cache the cross-built dependency stack
+        uses: actions/cache@v6
+        with:
+          path: |
+            mingw/build
+            mingw/zlib-*
+            mingw/libiconv-*
+            mingw/libxml2-*
+            mingw/libxslt-*
+            mingw/*.tar.gz
+            mingw/*.tar.xz
+          key: mingw-deps-${{ hashFiles('mingw/versions.mk') }}
+
       - name: Cross-build the win32 zip
         run: |
           set -eux
