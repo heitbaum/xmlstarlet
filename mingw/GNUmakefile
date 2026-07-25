@@ -24,6 +24,10 @@ CFLAGS='-O2'
 
 .DEFAULT_GOAL := xmlstarlet
 
+# Remove a target whose recipe failed - so a mismatched checksum drops the bad
+# tarball and the next run re-downloads it.
+.DELETE_ON_ERROR:
+
 ####################
 # ZLIB
 ####################
@@ -33,6 +37,7 @@ ZLIB := $(PREFIX)/lib/libz.a
 zlib-$(ZLIB_VERSION).tar.xz :
 	$(FETCH) $@ \
  'https://github.com/madler/zlib/releases/download/v$(ZLIB_VERSION)/zlib-$(ZLIB_VERSION).tar.xz'
+	echo '$(ZLIB_SHA256)  $@' | sha256sum -c -
 
 zlib-$(ZLIB_VERSION) : zlib-$(ZLIB_VERSION).tar.xz
 	tar -xf $<
@@ -63,6 +68,7 @@ ICONV := $(PREFIX)/lib/libiconv.a
 libiconv-$(ICONV_VERSION).tar.gz :
 	$(FETCH) $@ \
  'https://ftp.gnu.org/gnu/libiconv/libiconv-$(ICONV_VERSION).tar.gz'
+	echo '$(ICONV_SHA256)  $@' | sha256sum -c -
 
 libiconv-$(ICONV_VERSION) : libiconv-$(ICONV_VERSION).tar.gz
 	tar -xf $<
@@ -86,6 +92,7 @@ LIBXML := $(PREFIX)/lib/libxml2.a
 libxml2-$(XML2_VERSION).tar.xz :
 	$(FETCH) $@ \
  'https://download.gnome.org/sources/libxml2/$(basename $(XML2_VERSION))/libxml2-$(XML2_VERSION).tar.xz'
+	echo '$(XML2_SHA256)  $@' | sha256sum -c -
 
 libxml2-$(XML2_VERSION) : libxml2-$(XML2_VERSION).tar.xz
 	tar -xf $<
@@ -120,6 +127,7 @@ LIBXSLT := $(PREFIX)/lib/libxslt.a
 libxslt-$(XSLT_VERSION).tar.xz :
 	$(FETCH) $@ \
  'https://download.gnome.org/sources/libxslt/$(basename $(XSLT_VERSION))/libxslt-$(XSLT_VERSION).tar.xz'
+	echo '$(XSLT_SHA256)  $@' | sha256sum -c -
 
 libxslt-$(XSLT_VERSION) : libxslt-$(XSLT_VERSION).tar.xz
 	tar -xf $<
