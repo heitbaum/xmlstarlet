@@ -142,7 +142,8 @@ AS_CASE(["${host}"],
       [AS_IF([test "x$GCC" != "xyes"],
              [CFLAGS="-Ae"])],
   [*mingw*],
-      [WIN32_EXTRA_LIBS='-lwsock32'
+      dnl -lbcrypt: libxml2 >= 2.12 seeds its dict hash via BCryptGenRandom
+      [WIN32_EXTRA_LIBS='-lwsock32 -lbcrypt'
        AC_DEFINE([_WINSOCKAPI_],1,[Using the Win32 Socket implementation])])
 
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
