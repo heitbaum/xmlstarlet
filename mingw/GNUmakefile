@@ -1,7 +1,7 @@
 # Automate building xmlstarlet and its dependencies (downloading them) with the
 # mingw-w64 cross compiler, producing a self-contained, statically linked
 # 64-bit xml.exe plus the documentation, packaged as
-# xmlstarlet-<version>-win32.zip by `make dist-win32`.
+# xmlstarlet-<version>-windows-x86_64.zip by `make dist-windows-x86_64`.
 #
 # Run locally:  cd mingw && make
 #   needs:  x86_64-w64-mingw32-gcc  (Debian/Ubuntu: gcc-mingw-w64-x86-64)
@@ -151,7 +151,7 @@ xmlstarlet-$(XMLSTARLET_VERSION) :
 export ac_cv_func_realloc_0_nonnull := yes
 export ac_cv_func_malloc_0_nonnull := yes
 
-xmlstarlet-$(XMLSTARLET_VERSION)/xmlstarlet-$(XMLSTARLET_VERSION)-win32.zip : xmlstarlet-$(XMLSTARLET_VERSION) $(LIBXML) $(LIBXSLT)
+xmlstarlet-$(XMLSTARLET_VERSION)/xmlstarlet-$(XMLSTARLET_VERSION)-windows-x86_64.zip : xmlstarlet-$(XMLSTARLET_VERSION) $(LIBXML) $(LIBXSLT)
 	rm -rf xmlstarlet-$(XMLSTARLET_VERSION) \
  && mkdir xmlstarlet-$(XMLSTARLET_VERSION) \
  && cd xmlstarlet-$(XMLSTARLET_VERSION) \
@@ -161,11 +161,11 @@ xmlstarlet-$(XMLSTARLET_VERSION)/xmlstarlet-$(XMLSTARLET_VERSION)-win32.zip : xm
     --enable-static-libs \
     --enable-build-docs \
  && mkdir -p doc \
- && make dist-win32 STRIP=$(HOST)-strip \
+ && make dist-windows-x86_64 STRIP=$(HOST)-strip \
  && cd .. \
  && touch $@
 
-xmlstarlet : xmlstarlet-$(XMLSTARLET_VERSION)/xmlstarlet-$(XMLSTARLET_VERSION)-win32.zip
+xmlstarlet : xmlstarlet-$(XMLSTARLET_VERSION)/xmlstarlet-$(XMLSTARLET_VERSION)-windows-x86_64.zip
 .PHONY : xmlstarlet
 
 clean :

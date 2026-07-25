@@ -3,12 +3,12 @@
 # On a version tag (e.g. 1.7.0) build the release assets and publish a GitHub
 # Release:
 #   * source tarball  - `make dist`, with the full documentation baked in
-#   * win32 zip        - a self-contained, statically linked 64-bit xml.exe
+#   * windows-x86_64 zip        - a self-contained, statically linked 64-bit xml.exe
 #                        + docs, cross-built via mingw/GNUmakefile
 # workflow_dispatch runs the same builds as a dry-run: it uploads both as
 # workflow artifacts and creates NO Release, so they can be inspected before
 # tagging. The version is baked from git describe, so tag 1.7.0 yields
-# xmlstarlet-1.7.0.tar.gz and xmlstarlet-1.7.0-win32.zip.
+# xmlstarlet-1.7.0.tar.gz and xmlstarlet-1.7.0-windows-x86_64.zip.
 
 name: Release
 
@@ -65,9 +65,9 @@ jobs:
 
   # Self-contained 64-bit Windows binary (statically linked) + docs, produced
   # by the mingw cross-build driver (mingw/GNUmakefile). This is also the only
-  # place the win32 cross-build is exercised end to end.
-  win32:
-    name: win32 zip
+  # place the windows-x86_64 cross-build is exercised end to end.
+  windows-x86_64:
+    name: windows-x86_64 zip
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -98,27 +98,27 @@ jobs:
             mingw/*.tar.xz
           key: mingw-deps-${{ hashFiles('mingw/versions.mk') }}
 
-      - name: Cross-build the win32 zip
+      - name: Cross-build the windows-x86_64 zip
         run: |
           set -eux
           export XML_CATALOG_FILES=/etc/xml/catalog
           autoreconf -fi
           make -C mingw
           mkdir -p out
-          cp mingw/xmlstarlet-*/xmlstarlet-*-win32.zip out/
+          cp mingw/xmlstarlet-*/xmlstarlet-*-windows-x86_64.zip out/
           cd out
-          for z in xmlstarlet-*-win32.zip; do sha256sum "$z" > "$z.sha256"; done
+          for z in xmlstarlet-*-windows-x86_64.zip; do sha256sum "$z" > "$z.sha256"; done
           ls -la
 
       - uses: actions/upload-artifact@v7
         with:
-          name: win32-zip
+          name: windows-x86_64-zip
           path: out/*
 
   # On a version tag, publish a GitHub Release with all assets.
   release:
     name: publish release
-    needs: [dist, win32]
+    needs: [dist, windows-x86_64]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04
     steps:

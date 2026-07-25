@@ -1,6 +1,6 @@
 EXTRA_DIST = Copyright examples solaris tests
-WIN32_DIST = README TODO Copyright COPYING AUTHORS ChangeLog INSTALL NEWS xml.exe
-WIN32_doc_DIST = $(generated_docs) doc/html.css
+WINDOWS_X86_64_DIST = README TODO Copyright COPYING AUTHORS ChangeLog INSTALL NEWS xml.exe
+WINDOWS_X86_64_doc_DIST = $(generated_docs) doc/html.css
 
 ACLOCAL_AMFLAGS = -I m4
 if GCC
@@ -31,16 +31,16 @@ rpm: cleantar distdir xmlstarlet.spec
 	$(AMTAR) -czf $(distdir).tar.gz $(distdir)
 	rpmbuild -ta $(distdir).tar.gz
 
-$(distdir)-win32.zip: $(WIN32_DIST) $(WIN32_doc_DIST)
+$(distdir)-windows-x86_64.zip: $(WINDOWS_X86_64_DIST) $(WINDOWS_X86_64_doc_DIST)
 	mkdir -p /tmp/$(distdir)/doc
 	cp $^ /tmp/$(distdir)
-	cd /tmp/$(distdir) && for f in $(WIN32_doc_DIST); do mv "$${f##*/}" doc/; done
+	cd /tmp/$(distdir) && for f in $(WINDOWS_X86_64_doc_DIST); do mv "$${f##*/}" doc/; done
 	$(STRIP) /tmp/$(distdir)/xml.exe
 	cd /tmp && zip -9 --symlinks --recurse-paths --to-crlf --move \
-	  $(distdir)-win32.zip $(distdir)
-	mv /tmp/$(distdir)-win32.zip .
+	  $(distdir)-windows-x86_64.zip $(distdir)
+	mv /tmp/$(distdir)-windows-x86_64.zip .
 
-dist-win32: $(distdir)-win32.zip
+dist-windows-x86_64: $(distdir)-windows-x86_64.zip
 
 version.h: VERSION
 	@if [ -d .git ] ; then \
@@ -89,4 +89,4 @@ EXTRA_DIST += $(buildfiles_docs) $(manpage)
 CLEANFILES = version.h $(generated_usage_sources)
 MAINTAINERCLEANFILES = $(manpage) $(userguide_gen) $(txtguide)
 
-.PHONY: cleantar rpm dist-win32 VERSION doc
+.PHONY: cleantar rpm dist-windows-x86_64 VERSION doc
