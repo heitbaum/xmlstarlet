@@ -107,7 +107,9 @@ AS_IF([test "x$xstar_libxslt_pc" = xyes],
        AS_IF([test "x$STATIC_LIBS" = xno],
              [LIBXSLT_LIBS="-lexslt -lxslt"])
        : ${LIBXSLT_INCDIR="$LIBXSLT_PREFIX/include"}
-       LIBXSLT_CPPFLAGS="-I$LIBXSLT_INCDIR"])
+       AS_IF([test "x$STATIC_LIBS" != xno],
+             [LIBXSLT_CPPFLAGS="-I$LIBXSLT_INCDIR -DLIBXSLT_STATIC -DLIBEXSLT_STATIC"],
+             [LIBXSLT_CPPFLAGS="-I$LIBXSLT_INCDIR"])])
 
 AS_IF([test x"$enable_build_docs" = xyes],
       [AC_PATH_PROG(XSLTPROC, xsltproc, [none], [$XSLTPROC_PATH])
