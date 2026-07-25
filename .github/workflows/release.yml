@@ -1,0 +1,124 @@
+# XMLStarlet release
+#
+# On a version tag (e.g. 1.7.0) build the release assets and publish a GitHub
+# Release:
+#   * source tarball  - `make dist`, with the full documentation baked in
+#   * win32 zip        - a self-contained, statically linked 64-bit xml.exe
+#                        + docs, cross-built via mingw/GNUmakefile
+# workflow_dispatch runs the same builds as a dry-run: it uploads both as
+# workflow artifacts and creates NO Release, so they can be inspected before
+# tagging. The version is baked from git describe, so tag 1.7.0 yields
+# xmlstarlet-1.7.0.tar.gz and xmlstarlet-1.7.0-win32.zip.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref for a dry-run build (blank = this branch)"
+        required: false
+
+permissions:
+  contents: write   # publish the GitHub Release
+
+jobs:
+  # Source distribution tarball (with man/text/HTML/PDF/PS docs) - the primary
+  # release asset.
+  dist:
+    name: source tarball
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0   # tags for git describe -> baked version
+
+      - name: Install build + documentation toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential autoconf automake libtool pkg-config \
+            libxml2-dev libxslt1-dev xsltproc \
+            docbook-xsl docbook-xsl-ns docbook-xml fop ghostscript
+
+      - name: make dist
+        run: |
+          set -eux
+          export XML_CATALOG_FILES=/etc/xml/catalog
+          autoreconf -fi
+          ./configure --enable-build-docs
+          make -j"$(nproc)"
+          make dist
+          for t in xmlstarlet-*.tar.gz; do sha256sum "$t" > "$t.sha256"; done
+          ls -la xmlstarlet-*.tar.gz*
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: source-tarball
+          path: |
+            xmlstarlet-*.tar.gz
+            xmlstarlet-*.tar.gz.sha256
+
+  # Self-contained 64-bit Windows binary (statically linked) + docs, produced
+  # by the mingw cross-build driver (mingw/GNUmakefile). This is also the only
+  # place the win32 cross-build is exercised end to end.
+  win32:
+    name: win32 zip
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0   # tags for git describe -> zip version
+
+      - name: Install mingw cross toolchain + documentation toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential autoconf automake libtool pkg-config \
+            gcc-mingw-w64-x86-64 curl xz-utils zip \
+            xsltproc docbook-xsl docbook-xsl-ns docbook-xml fop ghostscript
+
+      - name: Cross-build the win32 zip
+        run: |
+          set -eux
+          export XML_CATALOG_FILES=/etc/xml/catalog
+          autoreconf -fi
+          make -C mingw
+          mkdir -p out
+          cp mingw/xmlstarlet-*/xmlstarlet-*-win32.zip out/
+          cd out
+          for z in xmlstarlet-*-win32.zip; do sha256sum "$z" > "$z.sha256"; done
+          ls -la
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: win32-zip
+          path: out/*
+
+  # On a version tag, publish a GitHub Release with all assets.
+  release:
+    name: publish release
+    needs: [dist, win32]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: assets
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eux
+          find assets -type f
+          gh release create "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "XMLStarlet ${GITHUB_REF_NAME}" \
+            --generate-notes \
+            $(find assets -type f | sort)
