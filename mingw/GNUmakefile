@@ -1,17 +1,20 @@
-# This makefile automates the building of xmlstarlet and its
-# dependancies (including downloading) with the mingw cross compiler.
-
-# Things that are somewhat specific to my setup and should probably be
-# generalized:
-
-#   - Uses i686-w64-mingw32- as the cross compiler prefix which I
-#     think is Debian (derivative) specific.
+# Automate building xmlstarlet and its dependencies (downloading them) with the
+# mingw-w64 cross compiler, producing a self-contained, statically linked
+# 64-bit xml.exe plus the documentation, packaged as
+# xmlstarlet-<version>-win32.zip by `make dist-win32`.
+#
+# Run locally:  cd mingw && make
+#   needs:  x86_64-w64-mingw32-gcc  (Debian/Ubuntu: gcc-mingw-w64-x86-64)
+#           and the host doc toolchain the docs need: xsltproc,
+#           docbook-xsl-ns, docbook-xml, fop, ghostscript.
+# The release workflow invokes this same driver.
 
 include versions.mk
 
 PREFIX := $(CURDIR)/build
-# Debian specific (I think)
-HOST := i686-w64-mingw32
+HOST   := x86_64-w64-mingw32
+
+FETCH := curl -fSL -o
 
 CONFIGURE_FLAGS := --prefix=$(PREFIX) --host=$(HOST) \
 --with-gnu-ld --enable-silent-rules \
@@ -28,8 +31,8 @@ CFLAGS='-O2'
 ZLIB := $(PREFIX)/lib/libz.a
 
 zlib-$(ZLIB_VERSION).tar.xz :
-	wget --output-document $@ \
- 'http://prdownloads.sourceforge.net/libpng/zlib-$(ZLIB_VERSION).tar.xz?download'
+	$(FETCH) $@ \
+ 'https://github.com/madler/zlib/releases/download/v$(ZLIB_VERSION)/zlib-$(ZLIB_VERSION).tar.xz'
 
 zlib-$(ZLIB_VERSION) : zlib-$(ZLIB_VERSION).tar.xz
 	tar -xf $<
@@ -38,7 +41,7 @@ zlib-$(ZLIB_VERSION) : zlib-$(ZLIB_VERSION).tar.xz
 $(ZLIB) : zlib-$(ZLIB_VERSION)
 	cd $< \
  && make -f win32/Makefile.gcc \
- PREFIX=/usr/bin/$(HOST)- \
+ PREFIX=$(HOST)- \
  CFLAGS='-Os' \
  prefix=$(PREFIX) \
  INCLUDE_PATH=$(PREFIX)/include \
@@ -58,8 +61,8 @@ zlib : $(ZLIB)
 ICONV := $(PREFIX)/lib/libiconv.a
 
 libiconv-$(ICONV_VERSION).tar.gz :
-	wget --output-document $@ \
- 'http://ftpmirror.gnu.org/libiconv/libiconv-$(ICONV_VERSION).tar.gz'
+	$(FETCH) $@ \
+ 'https://ftp.gnu.org/gnu/libiconv/libiconv-$(ICONV_VERSION).tar.gz'
 
 libiconv-$(ICONV_VERSION) : libiconv-$(ICONV_VERSION).tar.gz
 	tar -xf $<
@@ -80,11 +83,11 @@ iconv : $(ICONV)
 
 LIBXML := $(PREFIX)/lib/libxml2.a
 
-libxml2-$(XML2_VERSION).tar.gz :
-	wget --output-document $@ \
- 'ftp://xmlsoft.org/libxml2/libxml2-$(XML2_VERSION).tar.gz'
+libxml2-$(XML2_VERSION).tar.xz :
+	$(FETCH) $@ \
+ 'https://download.gnome.org/sources/libxml2/$(basename $(XML2_VERSION))/libxml2-$(XML2_VERSION).tar.xz'
 
-libxml2-$(XML2_VERSION) : libxml2-$(XML2_VERSION).tar.gz
+libxml2-$(XML2_VERSION) : libxml2-$(XML2_VERSION).tar.xz
 	tar -xf $<
 	touch $@
 
@@ -99,6 +102,9 @@ $(LIBXML) : libxml2-$(XML2_VERSION) $(ICONV) $(ZLIB)
     --without-sax1 \
     --without-threads \
     --without-modules \
+    --without-icu \
+    --with-zlib=$(PREFIX) \
+    --with-iconv=$(PREFIX) \
  && make install \
  && touch $@
 
@@ -111,11 +117,11 @@ libxml2 : $(LIBXML)
 
 LIBXSLT := $(PREFIX)/lib/libxslt.a
 
-libxslt-$(XSLT_VERSION).tar.gz :
-	wget --output-document $@ \
- 'ftp://xmlsoft.org/libxslt/libxslt-$(XSLT_VERSION).tar.gz'
+libxslt-$(XSLT_VERSION).tar.xz :
+	$(FETCH) $@ \
+ 'https://download.gnome.org/sources/libxslt/$(basename $(XSLT_VERSION))/libxslt-$(XSLT_VERSION).tar.xz'
 
-libxslt-$(XSLT_VERSION) : libxslt-$(XSLT_VERSION).tar.gz
+libxslt-$(XSLT_VERSION) : libxslt-$(XSLT_VERSION).tar.xz
 	tar -xf $<
 	touch $@
 
@@ -127,6 +133,7 @@ $(LIBXSLT) : libxslt-$(XSLT_VERSION) $(LIBXML)
     --without-plugins \
     --without-debugger \
     --without-python \
+    --without-crypto \
  && make install \
  && touch $@
 
@@ -140,7 +147,7 @@ libxslt : $(LIBXSLT)
 xmlstarlet-$(XMLSTARLET_VERSION) :
 	mkdir $@
 
-# see http://machine-cycle.blogspot.co.il/2010/07/mingw-64bit-cross-compilation.html
+# cross-compilation cannot run the malloc/realloc(0) probes; seed their cache
 export ac_cv_func_realloc_0_nonnull := yes
 export ac_cv_func_malloc_0_nonnull := yes
 
@@ -153,7 +160,8 @@ xmlstarlet-$(XMLSTARLET_VERSION)/xmlstarlet-$(XMLSTARLET_VERSION)-win32.zip : xm
     --with-libxslt-prefix=$(PREFIX) \
     --enable-static-libs \
     --enable-build-docs \
- && make dist-win32 \
+ && mkdir -p doc \
+ && make dist-win32 STRIP=$(HOST)-strip \
  && cd .. \
  && touch $@
 

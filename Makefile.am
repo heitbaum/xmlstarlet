@@ -35,7 +35,7 @@ $(distdir)-win32.zip: $(WIN32_DIST) $(WIN32_doc_DIST)
 	mkdir -p /tmp/$(distdir)/doc
 	cp $^ /tmp/$(distdir)
 	cd /tmp/$(distdir) && for f in $(WIN32_doc_DIST); do mv "$${f##*/}" doc/; done
-	strip /tmp/$(distdir)/xml.exe
+	$(STRIP) /tmp/$(distdir)/xml.exe
 	cd /tmp && zip -9 --symlinks --recurse-paths --to-crlf --move \
 	  $(distdir)-win32.zip $(distdir)
 	mv /tmp/$(distdir)-win32.zip .
