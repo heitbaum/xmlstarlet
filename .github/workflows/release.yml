@@ -2,13 +2,14 @@
 #
 # On a version tag (e.g. 1.7.0) build the release assets and publish a GitHub
 # Release:
-#   * source tarball  - `make dist`, with the full documentation baked in
-#   * windows-x86_64 zip        - a self-contained, statically linked 64-bit xml.exe
-#                        + docs, cross-built via mingw/GNUmakefile
-# workflow_dispatch runs the same builds as a dry-run: it uploads both as
+#   * source tarball    - `make dist`, with the full documentation baked in
+#   * windows-<arch> zip - a self-contained, statically linked xml.exe + docs,
+#                          cross-built via mingw/GNUmakefile for x86_64 and arm64
+# workflow_dispatch runs the same builds as a dry-run: it uploads the assets as
 # workflow artifacts and creates NO Release, so they can be inspected before
 # tagging. The version is baked from git describe, so tag 1.7.0 yields
-# xmlstarlet-1.7.0.tar.gz and xmlstarlet-1.7.0-windows-x86_64.zip.
+# xmlstarlet-1.7.0.tar.gz, xmlstarlet-1.7.0-windows-x86_64.zip and
+# xmlstarlet-1.7.0-windows-arm64.zip.
 
 name: Release
 
@@ -63,62 +64,82 @@ jobs:
             xmlstarlet-*.tar.gz
             xmlstarlet-*.tar.gz.sha256
 
-  # Self-contained 64-bit Windows binary (statically linked) + docs, produced
-  # by the mingw cross-build driver (mingw/GNUmakefile). This is also the only
-  # place the windows-x86_64 cross-build is exercised end to end.
-  windows-x86_64:
-    name: windows-x86_64 zip
+  # Self-contained, statically linked xml.exe + docs for each Windows CPU,
+  # cross-built by the mingw driver (mingw/GNUmakefile): x86_64 via
+  # gcc-mingw-w64, arm64 via a pinned llvm-mingw. This is also the only place
+  # the Windows cross-build is exercised end to end.
+  windows:
+    name: windows-${{ matrix.arch }} zip
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, arm64]
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0   # tags for git describe -> zip version
 
-      - name: Install mingw cross toolchain + documentation toolchain
+      - name: Install documentation + common build toolchain
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential autoconf automake libtool pkg-config \
-            gcc-mingw-w64-x86-64 curl xz-utils zip \
+            curl xz-utils zip \
             xsltproc docbook-xsl docbook-xsl-ns docbook-xml fop ghostscript
 
-      # Cache the cross-built dependency stack (downloaded tarballs + the
-      # static zlib/iconv/libxml2/libxslt). Keyed on versions.mk.
+      - name: Install x86_64 cross toolchain (gcc-mingw-w64)
+        if: matrix.arch == 'x86_64'
+        run: sudo apt-get install -y --no-install-recommends gcc-mingw-w64-x86-64
+
+      # Ubuntu has no aarch64 mingw target; use a pinned, checksum-verified
+      # llvm-mingw toolchain (provides aarch64-w64-mingw32-*).
+      - name: Install arm64 cross toolchain (llvm-mingw)
+        if: matrix.arch == 'arm64'
+        env:
+          LLVM_MINGW: llvm-mingw-20260616-ucrt-ubuntu-22.04-x86_64
+          LLVM_MINGW_SHA256: 534b92e067b22a6b4441f48ae9240a3341b17825d04d577eab0cf85c44b4deda
+        run: |
+          set -eux
+          curl -fsSL -o llvm-mingw.tar.xz \
+            "https://github.com/mstorsjo/llvm-mingw/releases/download/20260616/$LLVM_MINGW.tar.xz"
+          echo "$LLVM_MINGW_SHA256  llvm-mingw.tar.xz" | sha256sum -c -
+          sudo tar -xf llvm-mingw.tar.xz -C /opt
+          echo "/opt/$LLVM_MINGW/bin" >> "$GITHUB_PATH"
+
+      # Cache the cross-built dependency stack (downloaded tarballs + the static
+      # zlib/iconv/libxml2/libxslt). Keyed on arch + versions.mk.
       - name: Cache the cross-built dependency stack
         uses: actions/cache@v6
         with:
           path: |
-            mingw/build
-            mingw/zlib-*
-            mingw/libiconv-*
-            mingw/libxml2-*
-            mingw/libxslt-*
+            mingw/build-${{ matrix.arch }}
             mingw/*.tar.gz
             mingw/*.tar.xz
-          key: mingw-deps-${{ hashFiles('mingw/versions.mk') }}
+          key: mingw-deps-${{ matrix.arch }}-${{ hashFiles('mingw/versions.mk') }}
 
-      - name: Cross-build the windows-x86_64 zip
+      - name: Cross-build the windows-${{ matrix.arch }} zip
         run: |
           set -eux
           export XML_CATALOG_FILES=/etc/xml/catalog
           autoreconf -fi
-          make -C mingw
+          make -C mingw ARCH=${{ matrix.arch }}
           mkdir -p out
-          cp mingw/xmlstarlet-*/xmlstarlet-*-windows-x86_64.zip out/
+          cp mingw/xmlstarlet-*-${{ matrix.arch }}/xmlstarlet-*-windows-${{ matrix.arch }}.zip out/
           cd out
-          for z in xmlstarlet-*-windows-x86_64.zip; do sha256sum "$z" > "$z.sha256"; done
+          for z in xmlstarlet-*-windows-${{ matrix.arch }}.zip; do sha256sum "$z" > "$z.sha256"; done
           ls -la
 
       - uses: actions/upload-artifact@v7
         with:
-          name: windows-x86_64-zip
+          name: windows-${{ matrix.arch }}-zip
           path: out/*
 
   # On a version tag, publish a GitHub Release with all assets.
   release:
     name: publish release
-    needs: [dist, windows-x86_64]
+    needs: [dist, windows]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04
     steps:

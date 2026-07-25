@@ -1,6 +1,8 @@
 EXTRA_DIST = Copyright examples solaris tests
-WINDOWS_X86_64_DIST = README TODO Copyright COPYING AUTHORS ChangeLog INSTALL NEWS xml.exe
-WINDOWS_X86_64_doc_DIST = $(generated_docs) doc/html.css
+# Windows zip contents (architecture-independent); WINARCH names the target CPU.
+WINARCH = x86_64
+WIN_DIST = README TODO Copyright COPYING AUTHORS ChangeLog INSTALL NEWS xml.exe
+WIN_doc_DIST = $(generated_docs) doc/html.css
 
 ACLOCAL_AMFLAGS = -I m4
 if GCC
@@ -31,16 +33,16 @@ rpm: cleantar distdir xmlstarlet.spec
 	$(AMTAR) -czf $(distdir).tar.gz $(distdir)
 	rpmbuild -ta $(distdir).tar.gz
 
-$(distdir)-windows-x86_64.zip: $(WINDOWS_X86_64_DIST) $(WINDOWS_X86_64_doc_DIST)
+$(distdir)-windows-$(WINARCH).zip: $(WIN_DIST) $(WIN_doc_DIST)
 	mkdir -p /tmp/$(distdir)/doc
 	cp $^ /tmp/$(distdir)
-	cd /tmp/$(distdir) && for f in $(WINDOWS_X86_64_doc_DIST); do mv "$${f##*/}" doc/; done
+	cd /tmp/$(distdir) && for f in $(WIN_doc_DIST); do mv "$${f##*/}" doc/; done
 	$(STRIP) /tmp/$(distdir)/xml.exe
 	cd /tmp && zip -9 --symlinks --recurse-paths --to-crlf --move \
-	  $(distdir)-windows-x86_64.zip $(distdir)
-	mv /tmp/$(distdir)-windows-x86_64.zip .
+	  $(distdir)-windows-$(WINARCH).zip $(distdir)
+	mv /tmp/$(distdir)-windows-$(WINARCH).zip .
 
-dist-windows-x86_64: $(distdir)-windows-x86_64.zip
+dist-windows: $(distdir)-windows-$(WINARCH).zip
 
 version.h: VERSION
 	@if [ -d .git ] ; then \
@@ -89,4 +91,4 @@ EXTRA_DIST += $(buildfiles_docs) $(manpage)
 CLEANFILES = version.h $(generated_usage_sources)
 MAINTAINERCLEANFILES = $(manpage) $(userguide_gen) $(txtguide)
 
-.PHONY: cleantar rpm dist-windows-x86_64 VERSION doc
+.PHONY: cleantar rpm dist-windows VERSION doc
