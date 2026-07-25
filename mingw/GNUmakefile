@@ -1,18 +1,31 @@
-# Automate building xmlstarlet and its dependencies (downloading them) with the
+# Automate building xmlstarlet and its dependencies (downloading them) with a
 # mingw-w64 cross compiler, producing a self-contained, statically linked
-# 64-bit xml.exe plus the documentation, packaged as
-# xmlstarlet-<version>-windows-x86_64.zip by `make dist-windows-x86_64`.
+# xml.exe plus the documentation, packaged as
+# xmlstarlet-<version>-windows-<arch>.zip.
 #
-# Run locally:  cd mingw && make
-#   needs:  x86_64-w64-mingw32-gcc  (Debian/Ubuntu: gcc-mingw-w64-x86-64)
-#           and the host doc toolchain the docs need: xsltproc,
-#           docbook-xsl-ns, docbook-xml, fop, ghostscript.
-# The release workflow invokes this same driver.
+# The target architecture is selected with ARCH:
+#   make               # x86_64 (default)
+#   make ARCH=x86_64   # x86_64-w64-mingw32   (Debian/Ubuntu: gcc-mingw-w64-x86-64)
+#   make ARCH=arm64    # aarch64-w64-mingw32  (an llvm-mingw toolchain on PATH)
+# Each architecture builds into its own build-<arch>/ tree, so the two never
+# collide; the release workflow invokes this driver once per architecture.
+#
+# Also needs the host documentation toolchain: xsltproc, docbook-xsl-ns,
+# docbook-xml, fop, ghostscript.
 
 include versions.mk
 
-PREFIX := $(CURDIR)/build
-HOST   := x86_64-w64-mingw32
+ARCH ?= x86_64
+HOST_x86_64 := x86_64-w64-mingw32
+HOST_arm64  := aarch64-w64-mingw32
+HOST := $(HOST_$(ARCH))
+ifeq ($(HOST),)
+$(error unknown ARCH '$(ARCH)'; use x86_64 or arm64)
+endif
+
+# Per-architecture tree: extracted dependency sources and their static install
+# prefix. Tarballs are shared - downloaded once into this directory.
+PREFIX := $(CURDIR)/build-$(ARCH)
 
 FETCH := curl -fSL -o
 
@@ -39,11 +52,12 @@ zlib-$(ZLIB_VERSION).tar.xz :
  'https://github.com/madler/zlib/releases/download/v$(ZLIB_VERSION)/zlib-$(ZLIB_VERSION).tar.xz'
 	echo '$(ZLIB_SHA256)  $@' | sha256sum -c -
 
-zlib-$(ZLIB_VERSION) : zlib-$(ZLIB_VERSION).tar.xz
-	tar -xf $<
+$(PREFIX)/zlib-$(ZLIB_VERSION) : zlib-$(ZLIB_VERSION).tar.xz
+	mkdir -p $(PREFIX)
+	tar -xf $< -C $(PREFIX)
 	touch $@
 
-$(ZLIB) : zlib-$(ZLIB_VERSION)
+$(ZLIB) : $(PREFIX)/zlib-$(ZLIB_VERSION)
 	cd $< \
  && make -f win32/Makefile.gcc \
  PREFIX=$(HOST)- \
@@ -70,11 +84,12 @@ libiconv-$(ICONV_VERSION).tar.gz :
  'https://ftp.gnu.org/gnu/libiconv/libiconv-$(ICONV_VERSION).tar.gz'
 	echo '$(ICONV_SHA256)  $@' | sha256sum -c -
 
-libiconv-$(ICONV_VERSION) : libiconv-$(ICONV_VERSION).tar.gz
-	tar -xf $<
+$(PREFIX)/libiconv-$(ICONV_VERSION) : libiconv-$(ICONV_VERSION).tar.gz
+	mkdir -p $(PREFIX)
+	tar -xf $< -C $(PREFIX)
 	touch $@
 
-$(ICONV) : libiconv-$(ICONV_VERSION)
+$(ICONV) : $(PREFIX)/libiconv-$(ICONV_VERSION)
 	cd $< \
  && ./configure $(CONFIGURE_FLAGS) --enable-static --disable-shared \
  && make install \
@@ -94,11 +109,12 @@ libxml2-$(XML2_VERSION).tar.xz :
  'https://download.gnome.org/sources/libxml2/$(basename $(XML2_VERSION))/libxml2-$(XML2_VERSION).tar.xz'
 	echo '$(XML2_SHA256)  $@' | sha256sum -c -
 
-libxml2-$(XML2_VERSION) : libxml2-$(XML2_VERSION).tar.xz
-	tar -xf $<
+$(PREFIX)/libxml2-$(XML2_VERSION) : libxml2-$(XML2_VERSION).tar.xz
+	mkdir -p $(PREFIX)
+	tar -xf $< -C $(PREFIX)
 	touch $@
 
-$(LIBXML) : libxml2-$(XML2_VERSION) $(ICONV) $(ZLIB)
+$(LIBXML) : $(PREFIX)/libxml2-$(XML2_VERSION) $(ICONV) $(ZLIB)
 	cd $< \
  && ./configure $(CONFIGURE_FLAGS) \
     --disable-shared \
@@ -129,11 +145,12 @@ libxslt-$(XSLT_VERSION).tar.xz :
  'https://download.gnome.org/sources/libxslt/$(basename $(XSLT_VERSION))/libxslt-$(XSLT_VERSION).tar.xz'
 	echo '$(XSLT_SHA256)  $@' | sha256sum -c -
 
-libxslt-$(XSLT_VERSION) : libxslt-$(XSLT_VERSION).tar.xz
-	tar -xf $<
+$(PREFIX)/libxslt-$(XSLT_VERSION) : libxslt-$(XSLT_VERSION).tar.xz
+	mkdir -p $(PREFIX)
+	tar -xf $< -C $(PREFIX)
 	touch $@
 
-$(LIBXSLT) : libxslt-$(XSLT_VERSION) $(LIBXML)
+$(LIBXSLT) : $(PREFIX)/libxslt-$(XSLT_VERSION) $(LIBXML)
 	cd $< \
  && ./configure $(CONFIGURE_FLAGS) \
     --with-libxml-prefix=$(PREFIX) \
@@ -152,32 +169,30 @@ libxslt : $(LIBXSLT)
 # XMLSTARLET
 ####################
 
-xmlstarlet-$(XMLSTARLET_VERSION) :
-	mkdir $@
+BUILDDIR := xmlstarlet-$(XMLSTARLET_VERSION)-$(ARCH)
+ZIP      := xmlstarlet-$(XMLSTARLET_VERSION)-windows-$(ARCH).zip
 
 # cross-compilation cannot run the malloc/realloc(0) probes; seed their cache
 export ac_cv_func_realloc_0_nonnull := yes
 export ac_cv_func_malloc_0_nonnull := yes
 
-xmlstarlet-$(XMLSTARLET_VERSION)/xmlstarlet-$(XMLSTARLET_VERSION)-windows-x86_64.zip : xmlstarlet-$(XMLSTARLET_VERSION) $(LIBXML) $(LIBXSLT)
-	rm -rf xmlstarlet-$(XMLSTARLET_VERSION) \
- && mkdir xmlstarlet-$(XMLSTARLET_VERSION) \
- && cd xmlstarlet-$(XMLSTARLET_VERSION) \
+$(BUILDDIR)/$(ZIP) : $(LIBXML) $(LIBXSLT)
+	rm -rf $(BUILDDIR) \
+ && mkdir $(BUILDDIR) \
+ && cd $(BUILDDIR) \
  && ../../configure $(CONFIGURE_FLAGS) \
     --with-libxml-prefix=$(PREFIX) \
     --with-libxslt-prefix=$(PREFIX) \
     --enable-static-libs \
     --enable-build-docs \
  && mkdir -p doc \
- && make dist-windows-x86_64 STRIP=$(HOST)-strip \
- && cd .. \
- && touch $@
+ && make dist-windows WINARCH=$(ARCH) STRIP=$(HOST)-strip
 
-xmlstarlet : xmlstarlet-$(XMLSTARLET_VERSION)/xmlstarlet-$(XMLSTARLET_VERSION)-windows-x86_64.zip
+xmlstarlet : $(BUILDDIR)/$(ZIP)
 .PHONY : xmlstarlet
 
 clean :
-	rm -rf xmlstarlet-$(XMLSTARLET_VERSION)
+	rm -rf $(BUILDDIR)
 
-distclean : clean
-	rm -rf */ *.tar.[gx]z
+distclean :
+	rm -rf build-* xmlstarlet-*-x86_64 xmlstarlet-*-arm64 *.tar.[gx]z
