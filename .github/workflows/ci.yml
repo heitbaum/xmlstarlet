@@ -374,6 +374,69 @@ jobs:
             grep -E "^(FAIL|ERROR|XPASS):" "$log" | sed "s/^/  - /" >> "$GITHUB_STEP_SUMMARY" || true
           fi
 
+  # ---------------------------------------------------------------------------
+  # Docs axis: the ONLY job that builds the documentation (--enable-build-docs);
+  # the rest of the matrix builds --disable-build-docs, so the xsltproc/DocBook
+  # path and doc/gen-doc's sed pipeline are otherwise never exercised. macOS is
+  # the point: doc/gen-doc concatenates every examples/results/*.out and pipes
+  # it through sed, and BSD sed aborts ("RE error: illegal byte sequence") on a
+  # non-UTF-8 .out - a failure GNU sed on Linux never reproduces. Needs
+  # docbook-xsl (the doc.mk stylesheet URLs resolve through the XML catalog).
+  # ---------------------------------------------------------------------------
+  docs:
+    name: docs (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0   # need tags for git describe -> version in the docs
+
+      - name: Install deps (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential autoconf automake libtool pkg-config \
+            libxml2-dev libxslt1-dev xsltproc docbook-xsl docbook-xsl-ns
+
+      - name: Install deps (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew untap aws/tap 2>/dev/null || true
+          brew install autoconf automake libtool pkg-config libxml2 libxslt docbook-xsl
+
+      - name: Build docs
+        run: |
+          set -eux
+          autoreconf -fi
+          if [ "$RUNNER_OS" = macOS ]; then
+            # Homebrew libxml2/libxslt are keg-only (use their *-config); the
+            # DocBook stylesheets resolve through Homebrew's XML catalog.
+            export XML_CATALOG_FILES="$(brew --prefix)/etc/xml/catalog"
+            ./configure --enable-build-docs \
+              LIBXML_CONFIG="$(brew --prefix libxml2)/bin/xml2-config" \
+              LIBXSLT_CONFIG="$(brew --prefix libxslt)/bin/xslt-config"
+          else
+            export XML_CATALOG_FILES=/etc/xml/catalog
+            ./configure --enable-build-docs
+          fi
+          make -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
+
+      - name: Verify generated docs
+        run: |
+          set -eux
+          test -s doc/xmlstarlet.1
+          test -s doc/xmlstarlet.txt
+          test -s doc/xmlstarlet-ug.html
+          # doc/gen-doc concatenates examples/results/*.out through sed; the
+          # text guide must be valid UTF-8 (guards the docbook1 encoding fix).
+          iconv -f UTF-8 -t UTF-8 doc/xmlstarlet.txt > /dev/null
+
   # -------------------------------------------------------------------------
   # Cross-compilation axis: cross-build for aarch64, 32-bit arm and riscv64
   # with Ubuntu's native cross toolchains, then run the suite on the target
