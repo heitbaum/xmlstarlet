@@ -161,7 +161,7 @@ xmlstarlet-$(XMLSTARLET_VERSION)/xmlstarlet-$(XMLSTARLET_VERSION)-win32.zip : xm
     --enable-static-libs \
     --enable-build-docs \
  && mkdir -p doc \
- && make dist-win32 \
+ && make dist-win32 STRIP=$(HOST)-strip \
  && cd .. \
  && touch $@
 
