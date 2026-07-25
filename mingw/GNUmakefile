@@ -160,6 +160,7 @@ xmlstarlet-$(XMLSTARLET_VERSION)/xmlstarlet-$(XMLSTARLET_VERSION)-win32.zip : xm
     --with-libxslt-prefix=$(PREFIX) \
     --enable-static-libs \
     --enable-build-docs \
+ && mkdir -p doc \
  && make dist-win32 \
  && cd .. \
  && touch $@
