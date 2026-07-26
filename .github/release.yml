@@ -1,0 +1,24 @@
+# Categories for GitHub's automatically generated release notes
+# (`gh release create --generate-notes`, driven by .github/workflows/release.yml).
+# Each merged PR is grouped by label into the first matching category below;
+# merge commits are not listed. Every release is created as a draft so these
+# notes can be tidied (reorganised, retitled, a Highlights section added) before
+# it is published.
+changelog:
+  categories:
+    - title: Bug fixes
+      labels: [bug]
+    - title: libxml2 / libxslt modernization
+      labels: [libxml2]
+    - title: Windows
+      labels: ["os: windows"]
+    - title: Build and portability
+      labels: [build, portability]
+    - title: Documentation
+      labels: [docs]
+    - title: Continuous integration
+      labels: [ci]
+    - title: Housekeeping
+      labels: [cleanup]
+    - title: Other changes
+      labels: ["*"]
