@@ -1,3 +1,44 @@
+1.7.0: <release date>
+
+    First release since 2014, from the project's new home at
+    github.com/xmlstarlet/xmlstarlet - primarily a modernization and
+    infrastructure release.
+
+    - libxml2 / libxslt modernization (Nick Wellnhofer) for 2.9-2.15
+      compatibility and 3.0 readiness: use the xmlSave API, set parser
+      options instead of the deprecated global variables, rework library
+      initialization, drop most cleanup calls, set XML_PARSE_UNZIP. Builds
+      clean against libxml2 2.6.27 through git.
+
+    - Bug fixes:
+      - ed: no longer crashes on an unrecognized option
+      - ed -d: move deleted nodes to a document fragment (use-after-free)
+      - sel --comp: fixed
+      - several memory leaks found with ASan (elem/pyx/select/validate)
+      - fo --omit-decl: correct exit value
+
+    - Build and portability:
+      - build with pkg-config, with an xml2-config fallback
+      - portability fixes for the BSDs, Solaris/illumos, s390x, musl and
+        old libxml2
+      - optional --enable-werror; --disable-install-docs
+      - reliable version stamping via git-version-gen
+
+    - Documentation: fix the macOS documentation build; build the docs on
+      Linux and macOS in CI.
+
+    - Continuous integration: a GitHub Actions matrix across libxml2 2.6.27
+      to git, gcc 9-16, clang, Linux x86-64/aarch64, macOS, cross builds
+      (aarch64/armhf/riscv64/s390x), the BSDs, Solaris/illumos and musl.
+
+    - Windows: a modernized mingw-w64 cross-build produces a self-contained,
+      statically linked xml.exe for x86_64 and arm64, with SHA256-verified
+      dependency downloads, published as a GitHub Release.
+
+    - The complete SourceForge release history (0.0.1-1.6.1) is archived as
+      GitHub Releases.
+
+
 1.6.1: August 9, 2014
 
     - handle unicode arguments under Windows
