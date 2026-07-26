@@ -1,0 +1,24 @@
+# Fail a status check while a pull request has no labels, so it cannot be merged
+# until at least one label is added. Make this check required in the branch
+# protection rules to actually enforce it.
+
+name: Require a label
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  require-label:
+    name: require at least one label
+    runs-on: ubuntu-24.04
+    steps:
+      # labels[0] is null only when the labels array is empty.
+      - name: Fail while the pull request has no labels
+        if: github.event.pull_request.labels[0] == null
+        run: |
+          echo "::error::This pull request has no labels; add at least one before merging."
+          exit 1
