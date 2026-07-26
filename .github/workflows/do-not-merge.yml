@@ -1,0 +1,27 @@
+# Fail a status check while a pull request carries a "do not merge" label, so it
+# cannot be merged until the label is removed. Make this check required in the
+# branch protection rules to actually enforce the block.
+
+name: Do not merge
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  do-not-merge:
+    name: block "do not merge"
+    runs-on: ubuntu-24.04
+    steps:
+      # Step-level condition: the job always runs and reports a conclusive
+      # status - green when the label is absent, red while it is present.
+      - name: Fail while a "do not merge" label is present
+        if: >-
+          contains(github.event.pull_request.labels.*.name, 'do not merge') ||
+          contains(github.event.pull_request.labels.*.name, 'do-not-merge')
+        run: |
+          echo "::error::This pull request is labelled 'do not merge'."
+          exit 1
