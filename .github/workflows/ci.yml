@@ -51,11 +51,12 @@ jobs:
           # xmlstarlet's configure.ac declares libxml2 >= 2.6.27. The declared
           # minimum and the last 2.6 release both build and pass the core suite
           # (including the stdin "-" tests). 2.6.x-vintage schema/RelaxNG
-          # validation, --html and -R recover crash - those five tests are
-          # marked XFAIL (see the Test step), so the jobs report green with a
-          # note rather than a red. oldxml also drives the old-libxml2 build
-          # workarounds in "Build libxml2 + libxslt". Required: a regression that
-          # makes one of the five pass (XPASS) or newly fail then blocks.
+          # validation, --html and -R recover crash, and so does reading some
+          # documents by filename - those six tests are marked XFAIL (see the
+          # Test step), so the jobs report green with a note rather than a red.
+          # oldxml also drives the old-libxml2 build workarounds in "Build
+          # libxml2 + libxslt". Required: a regression that makes one of the six
+          # pass (XPASS) or newly fail then blocks.
           - { libxml2: "2.6.27",  libxslt: "1.1.26", experimental: false, oldxml: true }
           - { libxml2: "2.6.30",  libxslt: "1.1.26", experimental: false, oldxml: true }
           - { libxml2: "2.7.8",   libxslt: "1.1.26", experimental: false }
@@ -156,13 +157,19 @@ jobs:
           if [ "${{ matrix.oldxml }}" = "true" ]; then
             # libxml2 2.6.x crashes in schema/RelaxNG validation, --html and -R
             # recover - pre-existing limitations of that vintage, not xmlstarlet
-            # regressions. Mark exactly those expected-fail on top of the suite's
-            # own XFAIL_TESTS so the run is green; if one starts passing again it
-            # surfaces as XPASS (which fails the job).
+            # regressions. sel-bad-file joins them: 2.6.x sniffs for gzip by
+            # casting the gzFile it just opened to a z_stream *, which modern
+            # zlib does not lay out that way, so it dereferences whatever the
+            # bogus fields point at. Whether that faults depends on the document
+            # - reading examples/xml/malformed.xml by filename segfaults on
+            # 2.6.27 and 2.6.30 with or without this branch's sel fix, while
+            # other documents come through fine. Mark exactly those expected-fail
+            # on top of the suite's own XFAIL_TESTS so the run is green; if one
+            # starts passing again it surfaces as XPASS (which fails the job).
             base=$(make -pn 2>/dev/null | sed -n 's/^XFAIL_TESTS = //p' | head -1)
             make check XFAIL_TESTS="$base \
               examples/bigxml-xsd examples/hello1 examples/recover1 \
-              examples/schema1 examples/valid1"
+              examples/schema1 examples/valid1 examples/sel-bad-file"
           else
             make check
           fi
@@ -186,7 +193,7 @@ jobs:
             I=":x:"
           elif [ "${OLDXML}" = "true" ]; then
             I=":grey_exclamation:"
-            NOTE=" — expected: 5 XFAIL are pre-existing libxml2 2.6.x crashes (schema/RelaxNG/--html/-R), not regressions"
+            NOTE=" — expected: 6 XFAIL are pre-existing libxml2 2.6.x crashes (schema/RelaxNG/--html/-R/gzip-sniff), not regressions"
           else
             I=":white_check_mark:"
           fi
