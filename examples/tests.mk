@@ -30,6 +30,7 @@ examples/countnode1\
 examples/delete1\
 examples/depyx-bug120a\
 examples/depyx-bug120b\
+examples/depyx-nul-line\
 examples/dtd1\
 examples/dtd2\
 examples/dtd3\

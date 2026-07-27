@@ -1,0 +1,7 @@
+#!/bin/sh
+# A PYX line whose first byte is NUL leaves strlen() at 0, so stripping the
+# trailing newline must not index line[-1]. The offending line is skipped and
+# the surrounding elements still convert. Found by fuzzing under
+# UndefinedBehaviorSanitizer.
+./xmlstarlet depyx xml/depyx-nul.pyx
+echo $?

@@ -107,6 +107,7 @@ pyxDePyx(char *file)
    static char line[INSZ];
    FILE *in = stdin;
    int parseattrs;
+   size_t len;
 
    if (strcmp(file, "-"))
    {
@@ -121,7 +122,9 @@ pyxDePyx(char *file)
    parseattrs = 0;
    while (fgets(line, INSZ - 1, in) != NULL)
    {
-       if(line[strlen(line)-1] == '\n') line[strlen(line)-1] = '\0';
+       /* A line starting with NUL leaves strlen() at 0: do not index line[-1]. */
+       len = strlen(line);
+       if (len > 0 && line[len-1] == '\n') line[len-1] = '\0';
 
        if (parseattrs  && line[0] != 'A') {
            parseattrs = 0;
