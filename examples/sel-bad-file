@@ -1,0 +1,7 @@
+#!/bin/sh
+# sel on an unparseable document must fail cleanly with EXIT_BAD_FILE (3).
+# This also covers the generated stylesheet being released on that path: no
+# input document parses, so nothing ever takes ownership of it, and a build
+# with -fsanitize=address reports the leak here if selMain stops freeing it.
+./xmlstarlet sel -t -v //* xml/malformed.xml 2>/dev/null
+echo $?

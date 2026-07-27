@@ -649,7 +649,7 @@ extract_ns_defs(xmlNodePtr root, xmlDocPtr style_tree)
 }
 
 static void
-do_file(const char *filename, xmlDocPtr style_tree,
+do_file(const char *filename, xmlDocPtr style_tree, xsltStylesheetPtr *stylep,
     int xml_options, const selOptions *ops, xsltOptions *xsltOps,
     int *status)
 {
@@ -668,17 +668,18 @@ do_file(const char *filename, xmlDocPtr style_tree,
     if (doc != NULL) {
         xmlDocPtr res;
 
-        static xsltStylesheetPtr style = NULL;
-        if (!style) {
+        /* Compiled once and reused for the remaining input documents; owned
+         * by selMain, which frees it. */
+        if (!*stylep) {
             if (globalOptions.doc_namespace)
                 extract_ns_defs(xmlDocGetRootElement(doc), style_tree);
             /* Parse XSLT stylesheet */
-            style = xsltParseStylesheetDoc(style_tree);
-            if (!style) exit(EXIT_LIB_ERROR);
+            *stylep = xsltParseStylesheetDoc(style_tree);
+            if (!*stylep) exit(EXIT_LIB_ERROR);
         }
 
-        res = xsltTransform(xsltOps, doc, params, style, filename);
-        if (!ops->quiet && (!res || xsltSaveResultToFile(stdout, res, style) < 0))
+        res = xsltTransform(xsltOps, doc, params, *stylep, filename);
+        if (!ops->quiet && (!res || xsltSaveResultToFile(stdout, res, *stylep) < 0))
         {
             *status = EXIT_LIB_ERROR;
         }
@@ -707,6 +708,7 @@ selMain(int argc, char **argv)
     int start, i, n, status = EXIT_FAILURE;
     int nCount = 0;
     xmlDocPtr style_tree;
+    xsltStylesheetPtr style = NULL;
     int xml_options = 0;
 
     if (argc <= 2) selUsage(argv[0], EXIT_BAD_ARGS);
@@ -742,10 +744,20 @@ selMain(int argc, char **argv)
     }
 
     for (n=i; n<argc; n++)
-        do_file(argv[n], style_tree, xml_options, &ops, &xsltOps, &status);
+        do_file(argv[n], style_tree, &style, xml_options, &ops, &xsltOps, &status);
 
     if (i == argc)
-        do_file("-", style_tree, xml_options, &ops, &xsltOps, &status);
+        do_file("-", style_tree, &style, xml_options, &ops, &xsltOps, &status);
+
+    /*
+     *  Clean up. A parsed stylesheet owns style_tree and frees it with itself;
+     *  if nothing ever parsed -- no input document was readable -- the tree is
+     *  still ours. Same ownership split as xsltParseStylesheetDoc in trans.c.
+     */
+    if (style != NULL)
+        xsltFreeStylesheet(style);
+    else
+        xmlFreeDoc(style_tree);
 
     return status;
 }
