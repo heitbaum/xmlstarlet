@@ -56,6 +56,20 @@ TARGETS = [
     Target('ed-update',  ['ed', '-u', '//*', '-v', 'X', '{in}'],  'xml'),
     Target('ed-insert',  ['ed', '-s', '//*', '-t', 'elem', '-n', 'n', '-v', 'v', '{in}'], 'xml'),
     Target('ed-delete',  ['ed', '-d', '//*[1]', '{in}'],          'xml'),
+    Target('ed-attr',    ['ed', '-s', '//*', '-t', 'attr', '-n', 'k', '-v', 'v', '{in}'], 'xml'),
+    # Inserting a text node is its own case: xmlAddChild and the sibling calls
+    # merge a text node into an adjacent one and free the node they were given,
+    # which an element insert never does.
+    Target('ed-sub-text',   ['ed', '-s', '//*', '-t', 'text', '-n', 'x', '-v', 'FOO', '{in}'], 'xml'),
+    Target('ed-ins-text',   ['ed', '-i', '//*', '-t', 'text', '-n', 'x', '-v', 'FOO', '{in}'], 'xml'),
+    Target('ed-app-text',   ['ed', '-a', '//*', '-t', 'text', '-n', 'x', '-v', 'FOO', '{in}'], 'xml'),
+    # $prev names what was just inserted, so this walks whatever the insert left
+    # behind -- including a node the merge above may already have freed.
+    Target('ed-prev',    ['ed', '-s', '//*', '-t', 'text', '-n', 'x', '-v', 'FOO',
+                          '-i', '$prev', '-t', 'attr', '-n', 'k', '-v', 'v', '{in}'], 'xml'),
+    Target('ed-prev-del', ['ed', '-s', '//*', '-t', 'elem', '-n', 'n', '-v', 'v',
+                           '-d', '$prev', '-i', '$prev', '-t', 'attr', '-n', 'k',
+                           '-v', 'v', '{in}'], 'xml'),
 
     Target('val',        ['val', '-e', '{in}'],                   'xml'),
     Target('val-embed',  ['val', '-e', '-E', '{in}'],             'xml'),
