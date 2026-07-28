@@ -30,6 +30,7 @@ examples/countnode1\
 examples/delete1\
 examples/depyx-bug120a\
 examples/depyx-bug120b\
+examples/depyx-nul-line\
 examples/dtd1\
 examples/dtd2\
 examples/dtd3\
@@ -72,6 +73,7 @@ examples/recover1\
 examples/rename-attr1\
 examples/rename-elem1\
 examples/schema1\
+examples/sel-bad-file\
 examples/sel-comp\
 examples/sel-literal\
 examples/sel-if\
