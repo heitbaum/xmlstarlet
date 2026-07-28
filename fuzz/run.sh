@@ -27,6 +27,9 @@ RUN_FUZZ=yes
 LEAKS=yes
 REBUILD=no
 SEEDCAP=0
+DEPS=no
+LIBXML2_VER=2.15.3
+LIBXSLT_VER=1.1.43
 
 usage() {
     sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
@@ -47,8 +50,24 @@ Options
   --no-fuzz          build (and check) only, do not fuzz
   --no-leaks         turn LeakSanitizer off while fuzzing
   --seeds=N          cap the seed corpus per input kind
+  --deps[=XML2/XSLT] build libxml2 and libxslt from source with the same
+                     sanitizers and link against those instead of the system
+                     copies (default 2.15.3/1.1.43). Slower the first time, then
+                     cached -- and worth it: see below.
   --rebuild          discard the scratch tree and rebuild
   -h, --help         this text
+
+Why --deps matters
+  With the system libxml2 the sanitizers only see allocation and deallocation,
+  through the malloc interceptor. A bad access made *inside* libxml2 is invisible,
+  and xmlstarlet reaches libxml2 constantly, so a real bug can present as
+  something far milder. "ed -u" walking a node set into memory libxml2 had already
+  freed reported as a 171-byte leak, because update_string handed the freed
+  pointer straight to xmlNodeSetContent and libxml2 did the dereferencing; the
+  use-after-free only appeared once the read happened in instrumented code. The
+  same thing hides the edInsert/$prev use-after-free, whose only visible symptom
+  is an edit going missing. Build the dependencies instrumented and those report
+  as what they are.
 EOF
 }
 
@@ -65,6 +84,14 @@ while [ $# -gt 0 ]; do
         --jobs=*)           JOBS=${1#*=} ;;
         -j)                 shift; JOBS=$1 ;;
         --seeds=*)          SEEDCAP=${1#*=} ;;
+        --deps)             DEPS=yes ;;
+        --deps=*)           DEPS=yes
+                            LIBXML2_VER=${1#*=}
+                            LIBXSLT_VER=${LIBXML2_VER#*/}
+                            LIBXML2_VER=${LIBXML2_VER%%/*}
+                            [ "$LIBXSLT_VER" != "$LIBXML2_VER" ] || {
+                                echo "$0: --deps needs XML2/XSLT, e.g." \
+                                     "--deps=2.15.3/1.1.43" >&2; exit 2; } ;;
         --no-check)         RUN_CHECK=no ;;
         --no-fuzz)          RUN_FUZZ=no ;;
         --no-leaks)         LEAKS=no ;;
@@ -94,8 +121,65 @@ if [ "$SAN" != none ]; then
     CFLAGS_SAN="$CFLAGS_SAN -fsanitize=$SAN -fno-sanitize-recover=all"
 fi
 
-# Rebuild whenever the ref, the sanitizer set or the compiler changes.
-want="$REF|$SAN|$CC"
+# Fetch and build one dependency tarball from download.gnome.org, instrumented.
+build_dep() {
+    name=$1 ver=$2 prefix=$3; shift 3
+    series=${ver%.*}
+    tarball=$name-$ver.tar.xz
+    url=https://download.gnome.org/sources/$name/$series/$tarball
+
+    [ -f "$tarball" ] || {
+        echo "    fetching $tarball"
+        if command -v wget >/dev/null; then wget -q "$url"
+        elif command -v curl >/dev/null; then curl -sSfLO "$url"
+        else echo "need wget or curl to fetch $url" >&2; return 1
+        fi
+    }
+    rm -rf "$name-$ver"
+    tar xf "$tarball" || return 1
+    # Deliberately without -fno-sanitize-recover here: any pre-existing UB inside
+    # libxml2 itself should be reported and stepped over, not turned into an abort
+    # that looks like a finding of ours. Memory errors still stop the process.
+    ( cd "$name-$ver" \
+      && ./configure --prefix="$prefix" --without-python "$@" \
+             CC="$CC" CFLAGS="-g -O1 -fno-omit-frame-pointer$SAN_FLAGS" \
+             LDFLAGS="$SAN_FLAGS" \
+             >"$prefix/$name-configure.log" 2>&1 \
+      && make -j"$JOBS" >"$prefix/$name-make.log" 2>&1 \
+      && make install >>"$prefix/$name-make.log" 2>&1 )
+}
+
+if [ "$DEPS" = yes ]; then
+    [ "$SAN" != none ] || SAN=
+    # One -fsanitize= per sanitizer rather than a comma list: libtool splits on
+    # the comma while assembling the link command and ends up looking for a
+    # library called "undefined".
+    SAN_FLAGS=
+    oldifs=$IFS; IFS=,
+    for s in $SAN; do SAN_FLAGS="$SAN_FLAGS -fsanitize=$s"; done
+    IFS=$oldifs
+    deps=$BUILD_DIR/deps-$LIBXML2_VER-$LIBXSLT_VER-$(echo "${SAN:-none}" | tr , +)
+    if [ ! -x "$deps/bin/xslt-config" ] || [ "$REBUILD" = yes ]; then
+        echo "==> building instrumented libxml2 $LIBXML2_VER + libxslt $LIBXSLT_VER"
+        rm -rf "$deps"
+        mkdir -p "$deps/src"
+        ( cd "$deps/src" \
+          && build_dep libxml2 "$LIBXML2_VER" "$deps" \
+          && build_dep libxslt "$LIBXSLT_VER" "$deps" \
+                 --with-libxml-prefix="$deps" ) || {
+            echo "dependency build failed; see $deps/*-{configure,make}.log" >&2
+            exit 1
+        }
+    else
+        echo "==> reusing instrumented deps in $deps"
+    fi
+    LIBXML_CONFIG=$deps/bin/xml2-config
+    LIBXSLT_CONFIG=$deps/bin/xslt-config
+    DEPS_LDFLAGS=-Wl,-rpath,$deps/lib
+fi
+
+# Rebuild whenever the ref, the sanitizer set, the compiler or the deps change.
+want="$REF|$SAN|$CC|${deps:-system}"
 have=$(cat "$stamp" 2>/dev/null || echo none)
 
 if [ "$REBUILD" = yes ] || [ ! -x "$tree/xml" ] || [ "$have" != "$want" ]; then
@@ -110,6 +194,9 @@ if [ "$REBUILD" = yes ] || [ ! -x "$tree/xml" ] || [ "$have" != "$want" ]; then
     ( cd "$tree" \
       && autoreconf -sif >"$BUILD_DIR/autoreconf.log" 2>&1 \
       && ./configure --disable-build-docs CC="$CC" CFLAGS="$CFLAGS_SAN" \
+             ${LIBXML_CONFIG:+LIBXML_CONFIG="$LIBXML_CONFIG"} \
+             ${LIBXSLT_CONFIG:+LIBXSLT_CONFIG="$LIBXSLT_CONFIG"} \
+             ${DEPS_LDFLAGS:+LDFLAGS="$DEPS_LDFLAGS"} \
              >"$BUILD_DIR/configure.log" 2>&1 \
       && make -j"$JOBS" >"$BUILD_DIR/make.log" 2>&1 ) || {
         echo "build failed; see $BUILD_DIR/{autoreconf,configure,make}.log" >&2
