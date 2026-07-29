@@ -1,2 +1,3 @@
 .git_archival.txt export-subst
 build-aux/git-version-gen text eol=lf
+fuzz/run.sh text eol=lf
