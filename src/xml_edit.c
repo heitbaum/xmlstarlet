@@ -522,9 +522,16 @@ edProcess(xmlDocPtr doc, const XmlEdAction* ops, int ops_count)
         xmlXPathFreeObject(res);
     }
 
-    xmlFreeNode(deletedNodes);
-
+    /*
+     *  Order matters. The context owns the node sets behind $prev and any --var,
+     *  and xmlXPathFreeNodeSet() looks at every entry as it goes -- it has to, to
+     *  release the namespace nodes it copied. So the sets have to go while the
+     *  nodes they name are still there, and deletedNodes is what keeps those
+     *  alive: it is the last thing to free, not the first.
+     */
     xmlXPathFreeContext(ctxt);
+
+    xmlFreeNode(deletedNodes);
 }
 
 /**
