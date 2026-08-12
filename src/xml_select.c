@@ -110,7 +110,7 @@ typedef struct {
 } template_option;
 
 static const template_option
-    OPT_TEMPLATE = { 't', "template" },
+    OPT_TEMPLATE = { 't', "template", NULL, {{NULL, TARG_NONE}}, 0 },
     OPT_COPY_OF  = { 'c', "copy-of", BAD_CAST "copy-of", {{BAD_CAST "select", TARG_XPATH}}, 0 },
     OPT_VALUE_OF = { 'v', "value-of", BAD_CAST "with-param", {{BAD_CAST "name", TARG_STR_NAME_SELECT},
                                                               {BAD_CAST "select", TARG_XPATH}}, -1 },
@@ -120,10 +120,10 @@ static const template_option
     OPT_MATCH    = { 'm', "match", BAD_CAST "for-each", {{BAD_CAST "select", TARG_XPATH}}, 1 },
     OPT_IF       = { 'i', "if", BAD_CAST"when", {{BAD_CAST "test", TARG_XPATH}}, 1 },
     OPT_ELIF     = { 0,   "elif", BAD_CAST "when", {{BAD_CAST "test", TARG_XPATH}}, 1 },
-    OPT_ELSE     = { 0,   "else", BAD_CAST "otherwise", {{NULL}}, 1 },
+    OPT_ELSE     = { 0,   "else", BAD_CAST "otherwise", {{NULL, TARG_NONE}}, 1 },
     OPT_ELEM     = { 'e', "elem", BAD_CAST "element", {{BAD_CAST "name", TARG_ATTR_STRING}}, 1 },
     OPT_ATTR     = { 'a', "attr", BAD_CAST "attribute", {{BAD_CAST "name", TARG_ATTR_STRING}}, 1 },
-    OPT_BREAK    = { 'b', "break", NULL, {{NULL}}, -1 },
+    OPT_BREAK    = { 'b', "break", NULL, {{NULL, TARG_NONE}}, -1 },
     OPT_SORT     = { 's', "sort", BAD_CAST "sort", {{NULL, TARG_SORT_OP}, {BAD_CAST "select", TARG_XPATH}}, 0 },
     OPT_VAR      = { 0,   "var", BAD_CAST "variable", {{BAD_CAST "name", TARG_VAR}}, 1},
 

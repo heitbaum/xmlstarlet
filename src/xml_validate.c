@@ -26,6 +26,7 @@ THE SOFTWARE.
 
 #include <config.h>
 
+#include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -203,6 +204,22 @@ valParseOptions(valOptionsPtr ops, int argc, char **argv)
 }
 
 /**
+ *  Report a DTD validity message to the FILE* held in @ctx
+ *
+ *  libxml2 wants void (*)(void *ctx, const char *msg, ...) here. fprintf is
+ *  int (*)(FILE *, const char *, ...), and calling one through the other is
+ *  undefined however alike they look, so forward instead of casting.
+ */
+static void
+valReport(void *ctx, const char *msg, ...)
+{
+    va_list args;
+    va_start(args, msg);
+    vfprintf((FILE *) ctx, msg, args);
+    va_end(args);
+}
+
+/**
  *  Validate XML document against DTD
  */
 int
@@ -240,8 +257,8 @@ valAgainstDtd(valOptionsPtr ops, char* dtdvalid, xmlDocPtr doc, char* filename)
             if (ops->err)
             {
                 cvp->userData = (void *) stderr;
-                cvp->error    = (xmlValidityErrorFunc) fprintf;
-                cvp->warning  = (xmlValidityWarningFunc) fprintf;
+                cvp->error    = valReport;
+                cvp->warning  = valReport;
             }
             else
             {

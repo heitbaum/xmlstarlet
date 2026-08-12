@@ -97,7 +97,7 @@ static const OptionSpec
         {'v', "--value", XML_TEXT}
     },
     OPT_JUST_TYPE[] = {
-        {'t', "--type"}
+        {'t', "--type", XML_UNDEFINED}
     },
     OPT_NODE_TYPE[] = {
         {0, "elem", XML_ELEM},
@@ -105,7 +105,7 @@ static const OptionSpec
         {0, "text", XML_TEXT}
     },
     OPT_JUST_NAME[] = {
-        {'n', "--name"}
+        {'n', "--name", XML_UNDEFINED}
     };
 
 
