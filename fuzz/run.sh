@@ -178,16 +178,25 @@ if [ "$DEPS" = yes ]; then
     DEPS_LDFLAGS=-Wl,-rpath,$deps/lib
 fi
 
-# Rebuild whenever the ref, the sanitizer set, the compiler or the deps change.
-want="$REF|$SAN|$CC|${deps:-system}"
+# Resolve the ref to a commit and key the cache on that, not on the name. A branch
+# is the usual thing to point this at, and its name does not change when it moves,
+# so keying on "$REF" reuses a tree built from whatever that ref meant last time
+# and reports the result as if it were the current one.
+sha=$(git -C "$repo" rev-parse --verify --quiet "$REF^{commit}") || {
+    echo "$0: not a commit: $REF" >&2
+    exit 2
+}
+
+# Rebuild whenever the commit, the sanitizer set, the compiler or the deps change.
+want="$sha|$SAN|$CC|${deps:-system}"
 have=$(cat "$stamp" 2>/dev/null || echo none)
 
 if [ "$REBUILD" = yes ] || [ ! -x "$tree/xml" ] || [ "$have" != "$want" ]; then
-    echo "==> exporting $REF to $tree"
+    echo "==> exporting $REF ($(echo "$sha" | cut -c1-12)) to $tree"
     rm -rf "$tree"
     mkdir -p "$tree"
     # -c core.autocrlf=false: emit the committed bytes, not a platform variant.
-    git -C "$repo" -c core.autocrlf=false archive --format=tar "$REF" \
+    git -C "$repo" -c core.autocrlf=false archive --format=tar "$sha" \
         | tar -C "$tree" -xf -
 
     echo "==> building with CC=$CC CFLAGS=\"$CFLAGS_SAN\""
@@ -205,7 +214,7 @@ if [ "$REBUILD" = yes ] || [ ! -x "$tree/xml" ] || [ "$have" != "$want" ]; then
     "$tree/xml" --version | sed 's/^/    /'
     echo "$want" >"$stamp"
 else
-    echo "==> reusing $tree ($have); --rebuild to start over"
+    echo "==> reusing $tree built from $(echo "$sha" | cut -c1-12); --rebuild to start over"
 fi
 
 if [ "$RUN_CHECK" = yes ]; then
