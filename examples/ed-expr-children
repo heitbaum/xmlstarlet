@@ -1,0 +1,14 @@
+#!/bin/sh
+# 'ed -u' with -x and a node-set result replaces the target's content, so every
+# existing child has to go, not just the first. xmlUnlinkNode() clears ->next, so
+# walking the child list while unlinking it used to stop after one child and leave
+# the rest in place alongside the new content.
+./xmlstarlet ed -u /r -x /r/a << EOT
+<r><a>1</a><b>2</b><c>3</c></r>
+EOT
+echo $?
+# Same with text nodes among the children.
+./xmlstarlet ed -u /r -x /r/a << EOT
+<r>text<a>1</a>more<b>2</b></r>
+EOT
+echo $?

@@ -262,7 +262,7 @@ edUpdate(xmlDocPtr doc, xmlNodeSetPtr nodes, const char *val,
             res = xmlXPathCompiledEval(xpath, ctxt);
             if (res->type == XPATH_NODESET || res->type == XPATH_XSLT_TREE) {
                 int j;
-                xmlNodePtr oldChild;
+                xmlNodePtr oldChild, nextChild;
                 xmlNodeSetPtr oldChildren = xmlXPathNodeSetCreate(NULL);
                 /* NOTE: newChildren can be NULL for empty result set */
                 xmlNodeSetPtr newChildren = res->nodesetval;
@@ -270,7 +270,11 @@ edUpdate(xmlDocPtr doc, xmlNodeSetPtr nodes, const char *val,
                 /* NOTE: nodes can be both oldChildren and newChildren */
 
                 /* unlink the old children */
-                for (oldChild = nodes->nodeTab[i]->children; oldChild; oldChild = oldChild->next) {
+                for (oldChild = nodes->nodeTab[i]->children; oldChild;
+                     oldChild = nextChild) {
+                    /* xmlUnlinkNode() clears ->next, so remember the successor
+                       before unlinking or the walk stops at the first child. */
+                    nextChild = oldChild->next;
                     xmlUnlinkNode(oldChild);
                     /* we can't free it now because an oldChild can also be
                        newChild! just put it in the list */
