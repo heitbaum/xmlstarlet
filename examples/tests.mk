@@ -42,6 +42,7 @@ examples/ed-backref1\
 examples/ed-backref2\
 examples/ed-bad-option\
 examples/ed-expr\
+examples/ed-expr-children\
 examples/ed-insert\
 examples/ed-literal\
 examples/ed-move\
