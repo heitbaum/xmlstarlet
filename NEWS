@@ -1,4 +1,4 @@
-1.7.0: <release date>
+1.7.0: September 7, 2026
 
     First release since 2014, from the project's new home at
     github.com/xmlstarlet/xmlstarlet - primarily a modernization and
@@ -13,8 +13,10 @@
     - Bug fixes:
       - ed: no longer crashes on an unrecognized option
       - ed -d: move deleted nodes to a document fragment (use-after-free)
+      - ed -u: replace every child of a node-set update, not just the first
       - sel --comp: fixed
-      - several memory leaks found with ASan (elem/pyx/select/validate)
+      - memory-safety fixes and leaks found with ASan/UBSan and fuzzing
+        (depyx/ed/elem/pyx/select/validate)
       - fo --omit-decl: correct exit value
 
     - Build and portability:
@@ -29,7 +31,8 @@
 
     - Continuous integration: a GitHub Actions matrix across libxml2 2.6.27
       to git, gcc 9-16, clang, Linux x86-64/aarch64, macOS, cross builds
-      (aarch64/armhf/riscv64/s390x), the BSDs, Solaris/illumos and musl.
+      (aarch64/armhf/riscv64/s390x), the BSDs, Solaris/illumos and musl,
+      plus an ASan/UBSan mutation-fuzzing harness.
 
     - Windows: a modernized mingw-w64 cross-build produces a self-contained,
       statically linked xml.exe for x86_64 and arm64, with SHA256-verified
