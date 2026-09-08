@@ -65,8 +65,8 @@ jobs:
           - { libxml2: "2.10.4",  libxslt: "1.1.37", experimental: false }
           - { libxml2: "2.11.9",  libxslt: "1.1.39", experimental: false }
           - { libxml2: "2.12.10", libxslt: "1.1.42", experimental: false }
-          - { libxml2: "2.13.8",  libxslt: "1.1.42", experimental: false }
-          - { libxml2: "2.14.5",  libxslt: "1.1.43", experimental: false }
+          - { libxml2: "2.13.9",  libxslt: "1.1.42", experimental: false }
+          - { libxml2: "2.14.6",  libxslt: "1.1.43", experimental: false }
           - { libxml2: "2.15.4",  libxslt: "1.1.45", experimental: false }
           # git = upstream master HEAD; the only experimental (non-blocking) job.
           - { libxml2: "git",     libxslt: "git",    experimental: true }
