@@ -67,7 +67,7 @@ jobs:
           - { libxml2: "2.12.10", libxslt: "1.1.42", experimental: false }
           - { libxml2: "2.13.8",  libxslt: "1.1.42", experimental: false }
           - { libxml2: "2.14.5",  libxslt: "1.1.43", experimental: false }
-          - { libxml2: "2.15.3",  libxslt: "1.1.43", experimental: false }
+          - { libxml2: "2.15.4",  libxslt: "1.1.45", experimental: false }
           # git = upstream master HEAD; the only experimental (non-blocking) job.
           - { libxml2: "git",     libxslt: "git",    experimental: true }
     env:
@@ -224,8 +224,8 @@ jobs:
     continue-on-error: ${{ matrix.experimental }}
     env:
       PREFIX: ${{ github.workspace }}/deps
-      LIBXML2: "2.15.3"    # pinned baseline (newest stable) so the compiler is the only variable
-      LIBXSLT: "1.1.43"
+      LIBXML2: "2.15.4"    # pinned baseline (newest stable) so the compiler is the only variable
+      LIBXSLT: "1.1.45"
     strategy:
       fail-fast: false
       matrix:
@@ -457,8 +457,8 @@ jobs:
     continue-on-error: ${{ matrix.experimental }}
     env:
       PREFIX: ${{ github.workspace }}/deps
-      LIBXML2: "2.15.3"    # pinned baseline (newest stable) so the target arch is the only variable
-      LIBXSLT: "1.1.43"
+      LIBXML2: "2.15.4"    # pinned baseline (newest stable) so the target arch is the only variable
+      LIBXSLT: "1.1.45"
       QEMU_LD_PREFIX: /usr/${{ matrix.triplet }}
     strategy:
       fail-fast: false
