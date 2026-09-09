@@ -768,3 +768,32 @@ jobs:
           ./configure --disable-build-docs --enable-werror
           make -j"$(nproc)"
           make check
+
+  # -------------------------------------------------------------------------
+  # musl cross axis: the job above is a native Alpine build, so configure runs
+  # its feature tests. A distro cross-building to musl declares --build !=
+  # --host, and autoconf then has to guess the answers from the host triple.
+  # -------------------------------------------------------------------------
+  musl-cross:
+    name: musl cross (alpine x86_64)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: alpine.sh {0}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      - uses: jirutka/setup-alpine@v1
+        with:
+          arch: x86_64
+          packages: >
+            build-base autoconf automake libtool pkgconf git
+            libxml2-dev libxslt-dev
+      - name: Build
+        run: |
+          set -eux
+          autoreconf -fi
+          ./configure --build=x86_64-pc-linux-gnu                       --host=x86_64-alpine-linux-musl                       CC=gcc --disable-build-docs --enable-werror
+          make -j"$(nproc)"
